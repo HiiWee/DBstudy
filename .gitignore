@@ -1,0 +1,5 @@
+## OS X ##
+.DS_store
+
+## 제외폴더 및 파일 ##
+screenshot/
