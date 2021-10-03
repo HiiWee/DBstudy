@@ -1,0 +1,500 @@
+<DBMS>
+ * SQL(Structured Query Language) - DBMS에게 구조화된 데이터를 질의하는 명령어
+	DBMS = DataBase Management System
+
+ * CBD는 컨테이너로서의 데이터베이스 그 안에 PDB(Pluggable Database) 를 만듦
+ * hrpdb, salepdb 와 같이 셋방살이 하고 있는 세입자(tenant) DB들을 유식한 말로 PDB (Pluggable DB) 라고 합니다.
+
+ * MYCDB 처럼 hrpdb, salespdb 를 담고 있는(contain) 집주인 DB를 유식한 말로 CDB (Container DB) 라고 합니다.
+ 
+ * PDB내부에 이미 Seed라 하는 데이터베이스가 존재하는데 데이터베이스는 아니고 PDB를 만들기 위한 템플릿의 역할이다 (PDB만들때 Seed를 복사해 만듦)
+ 
+ * 오라클 최초 설치시 Seed와 연습용데이터베이스 XEPDB1이 존재
+   - SQL> select name from v$pdbs; 로 확인가능 v의 의미는 뷰이다.
+ * PDB 생성 코드
+   CREATE
+     PLUGGABLE DATABASE hrpdb
+     ADMIN USER dba1
+     INDETIFIED BY password
+
+<SQL DEVELOPER>
+
+ * xepdb1로 접속하면 가상데이터베이스인 pdb접속이고 이는 계정이름 비밀번호는 동일하지만 기존 컨테이너디비(OracleCDB)의 계정과 다른 별개의 새로운 계정이다 >> 같은 SYSTEM이어도 다른 계정으로 생각
+  >> 새로만들기 버튼으로 계정이 2개 생성된걸 확인할 수 있다. 
+ 
+ * 오라클DB 원격접속 : 
+  1.같은공유기 사용하는 환경에서 원격으로 접속하기
+	EXEC DBMS_XDB.SETLISTENERLOCALACCESS(FALSE); >> 로컬이 아닌 원격으로 접속가능
+	 > CDB에서 실행하는것이 바람직함
+  2. DB가 깔려있는곳에서 ipconfig로 ip주소를 알아내어 localhost대신 IP주소를 작성하고 접속
+  3. 만약 방화벽포트가 접속하기위한 DB포트를 허락하지 않는다면 접속불가 (허락가능하게 설정변경)
+  4. 문장에 세미콜론 안쓰면 드래그하고 실행하면 드래그범위만 실행됨
+
+{
+데이터베이스 생성영역
+ <ORACLE TABLESPACE>
+  * 보기 > DBA 활성화후 +버튼으로 추가
+  * 저장영역 > 테이블스페이스 > 우클릭 이후 
+  tablespace하나만 가지고 데이터베이스를 만들 수 있는건 아님
+
+  * HOSEOK_TABLESPACE : 데이터를 저장하기 위한 테이블스페이스
+  * HOSEOK_LOGSPACE : 데이터를 다루면 임시로 사용할 수 있는 공간이 필요(영구적이지 않음), 즉 임시저장소 역할
+  두개를 만들면 위의 테이블스페이스를 운영할 수 있는 계정이 필요함 (HOSEOK 사용자를 위한)
+
+  * 보안 > 사용자
+   - 이름은 대문자로 소문자는 ""로 감싸야함
+   - 권한은 SYSKM, SYSOPER, SYSRAC를 제외한 모두 허락 권장
+
+ < HOSEOK 사용자로 새로운 데이터베이스 생성하기 >
+  * +버튼으로 pdb선택하고 이름변경 사용자를 생성한 사용자와 비밀번호를 적용하고 생성하면 사용자 db 생성됨
+  * CDB는 사용하지 않는다
+}
+
+
+ < 오라클 데이터 형식 (문자) >
+
+** 문자열 표현
+
+ - char()
+	- 고정길이의 데이터 50개의 공간을 마련하면 50개를 사용하지 않아도 50개의 공간을 차지
+	- 고정길이이므로 검색시 곱하기 연산으로 바로 찾을 수 있음 >> 검색속도 빠름
+
+ - varchar2()
+	- 50의 길이를 주고 2개의 자리만 사용하면 48개는 반환함 (즉 최대 50개까지 사용가능하다)
+	- 실제로 반환하는건 아니고 데이터를 저장할때 각 데이터 사이를 구분자로 구분함 (가변길이로 사용가능해짐)
+	  따라서 4번째 데이터를 얻기 위해선 처음부터 세면서 가야함 >> 즉 검색속도 느려짐
+
+ - nchar()
+	- 값을 저장할때 영어 한국어 뿐만아니라 전세계 언어를 사용할 수 있다.
+	- 하지만 문자를 사용할 때 더 많은 바이트 사용 (UTF-8인코딩이므로 3배정도의 크기를 더 차지함)
+
+ - nvarchar2()
+	- 값을 저장할때 영어 한국어 뿐만아니라 전세계 언어를 사용할 수 있다.(national + variable)
+
+
+CHAR [(size [BYTE | CHAR])]	VARCHAR(size[BYTE | CHAR])
+	size => 1byte
+
+NCHAR[(size)]			NVARCHAR2(size)
+	size => 2 or 3bytes
+
+** 문자열의 사이즈
+  - () 괄호 안의 숫자는 글자의 의미가 아닌 byte의 의미임 즉 char(3)은 3글자가 아닌 3바이트의 크기를 할당하는 것이다.
+  - 영문자를 제외한 언어 즉 네셔널 언어들은 3바이트를 사용한다. >> selet * from NLS_DATABASE_PARAMETERS; 각국의 언어 지원 환경을 볼 수 있음
+  - 괄호 내부에서 byte 또는 char로 캐스팅가능 byte는 숫자가 바이트값을 의미하고 char는 숫자가 글자의 수를 의미한다.
+	  ex) char(2 char) >> 2가 byte값이 아닌 2글자의 의미 >> 하지만 바람직하지 않은 옵션
+	- 이유 : char()의 각국의 언어코드(ex:한국어)를 사용하기위해 문자 하나를 3byte의 크기로 저장
+		 하지만 nchar()은 2byte(ex:한국어)를 언어코드로 사용한다.
+
+  - 할당할 수 있는 사이즈의 맥시멈 > STANDARD = 4000byte 까지 사용가능 (default option)
+				 > 만약 EXTENDED 옵션 = 32767byte 사용가능
+
+** varchar2에 2가 붙은 이유 : 레퍼런스에 예약어로 사용하기 위해 찜해놓음 그냥사용해도 되지만 예약해놓은 키워드이므로 숫자 2붙여주는걸 권장
+
+** 매우 큰 사이즈의 Character 형식
+ ex) 문자열을 다룰때 큰 데이터를 다룰떄가있음 (아티클같이 매우 큰 컨텐츠를 표현하기 위해 사용)
+  - LONG : 2Gbyte 하지만 CLOB, NCLOB가 대체로 나타남 (과거에 등장했으므로 제약사항도 많음 : 한 속성에 사용시 다른속성에 2번이상사용불가능)
+
+  - CLOB(Char Large Of Object) : 대용량 텍스트 데이터 타입 (최대 4Gbyte)
+  - NCLOB(National '' ) : 네셔널 대용량 텍스트 데이터 타입 (최대 4Gbyte)
+
+ <오라클 데이터 형식 2 (숫자/날짜)>
+
+** 숫자
+
+  - NUMBER [ (p [, S]) ]
+	NUMBER(4)	최대 4자로 이루어진 숫자
+	NUMBER(6,2)	소수점 2자리를 포함하는 최대 6자리의 숫자 (소수점 둘째 자리에서 반올림)
+	NUMBER(6,-2)	소수점 -2자리에서 반올림하는 최대 6자리의 숫자
+	NUMBER		NUMBER(38,*)
+	NUMBER(*,5)	NUMBER(38,5)
+		*은 속성이 정해지지 않았다 라는 의미
+
+
+** 날짜
+
+  - DATE : 년, 월, 일 까지 표현된다.
+  - TIMESTAMP : 년, 월, 일 및 시, 분, 초까지 표현 가능하다.
+	>> 위 두 형식은 기본적으로 매우 큰 숫자 형식이라고 생각하면 된다. 기준 년, 월, 일(4712 BC ~ 9999 AD) 1000밀리세컨드 == 1초
+	>> 따라서 만약 숫자가 1억2천이면 1000으로 나눠서 초로 바꾸고 60으로 나눠서 시간 이렇게 반복하여 날짜를 뽑아냄
+	>> 나라마다 표현되는 형태의 날짜 문자열이 다르게 표현됨( select * from NLS_DATABASE_PARAMETERS; 로 지역정보가 어떻게 표현되는지 확인가능)
+
+
+< 테이블 수정하기 - create, alter, drop (9강) >
+쿼리문을 잘 알면 좋지만 DB마다 성질이 다르므로 또 간편하게 추가할 수 있는 기능이 각 DB마다 있으므로 잘 사용하자
+
+
+< 테이블 추가하기 >
+* 테이블 사이의 관계도는 스크린샷 참조
+* 오라클은 예약어나 부적합한 키워드를 포함하는 테이블명의 경우 ","로 감싸면 테이블명아나 컬럼명으로 사용할 수 있다.
+
+< 데이터 쿼리 종류 >
+
+* DDL (Data Definition Language) - 데이터 정의어 (create, alter, drop)
+* DML (Data Management Language) - 데이터 조작어 (select, update, delete, insert)
+* DCL (Data Control Language) - 데이터 제어어 (grant, revoke)
+
+< 쿼리 다루기 >
+
+* DML
+  - 예약어들은 대소문자 구분하지 않지만 값(values)들은 대소문자를 구분함
+  - select 절에서 as 키워드 생략가능
+  - 새로운 이름 사용할때 공백 포함이면 ","로 감싼다 (이때는 대, 소문자 구분해야함)
+
+---- jdbc 공부하고 오자! ----
+
+
+< 트랜잭션 >
+* 트랜잭션 : 논리적인 단위 (업무실행단위)
+* Lock, Unlock : 트랜잭션이 실행되고 커밋이나 롤백의 명령어가 들어가기전 임시저장소에 결과가 저장되어있는 상태 다른 사용자가 접근해서 DML을 이용해도 계속 대기상태가됨
+* commit : 임시저장소에 적용된 상태를 실제 저장소에 적용
+* rollback : 임시저장소에 적용된 상태를 적용 전 상태로 되돌린다.
+
+
+< 오라클의 dummy 테이블>
+* 오라클이 지정해주는 더미 테이블, 의미가 없고 데이터를 뽑기위한게 아닌 단지 간단한 출력을 위해 from 뒤에 작성 할 수 있음 >> "DUAL"
+
+< 오라클의 연산 >
+|| : 문자열의 더하기 select 1 || '3' from DUAL; 시 + 연산은 4가 출력 하지만 || 사용시 문자열 '13' 출력
+
+* 비교연산자
+ - !=, ^=, <> : 모두 같지않으면 참을 반환
+* 패턴 비교 
+ - like (%, _) 
+
+* 관계연산자
+ - NOT, AND, OR, BETWEEN, IN
+
+ - select * from NOTICE where HIT >= 0 and HIT <= 2;
+ - select * from NOTICE where HIT between 0 and 2; -- 위와 동일한 연산
+		>> between은 작성한 숫자까지 포함
+
+ - select * from NOTICE where HIT = 0 or HIT = 2 or HIT =7;
+ - select * from NOTICE where HIT in (0, 2, 7); -- 위와 동일한 연산
+
+
+< 정규식 >
+ * 정규식을 오라클에서 이용하기 위해서는 특수함수 사용해야 함 : where REGEXP_LIKE (컬럼명, '정규식');
+ * regexlib.com 참조 (사용자들이 올린 정규식 내용 찾아보기 가능)
+	- cheat sheet에 각 기호에 대한 설명을 볼 수 있음
+ * 전화번호 정규식 : ^01[016-9]-\d{3,4}-\d{4}$ >> 하지만 패턴이 시작과 끝이 일치해야 뽑아낼 수 있음 (앞뒤에 다른 문자 섞이면 구분 못함) 왜? ^, $로 시작과 끝을 정해주었기 때문
+ * 전화번호 정규식2 : 01[016-9]-\d{3,4}-\d{4}
+
+ * 이메일 정규식 등 다양하게 만들 수 있음 
+
+
+
+<< ROWNUM 그리고 행 제한하기 >>
+
+* ROWNUM : 오라클에서 결과집합을 만들때 where 절에서 ROWNUM이라는 컬럼이 추가됨 (마치 sqlD에서 실행결과를 볼 때 왼쪽에 붙는 번호와 같음, 순차적임)
+* 하지만 ROWNUM의 값을 1이아닌 2 이상부터는 비교할 수 없음 >> 최초 ROWNUM은 1로 시작되고 결과집합에 해당되는 레코드들을 하나씩 불러오며 ROWNUM도 하나씩 증가되며 차례로 생성됨
+  따라서 ROWNUM을 2 이상부터 찾는다면 최초에 1로 만들어진 ROWNUM에서 모두 거짓 처리되어 아무것도 결과집합에 남지 않음
+* 즉 ROWNUM은 결과집합이 만들어질때 같이 만들어짐.
+
+* ROWNUM을 미리 만들고 기존테이블과 묶어서 새 테이블을 만들면? >> 2이상의 숫자도 탐색가능 왜? 이미 만들어져 있으므로
+	>> select * from (select ROWNUM NUM, NOTICE.* from NOTICE) 
+	   where NUM between 6 and 10;
+ 	1. 괄호안에 select절이 우선 실행됨 *는 한정자가 없으므로 모든 컬럼을 출력해달라는 의미이므로 단독적으로 사용해야함
+	   하지만 앞에 테이블명.*은 테이블명에 해당되는 테이블의 모든 컬럼이라는 의미로 축소되므로 다른 컬럼명과 같이 사용 가능하다.
+	2. 따라서 괄호 내 select 절에서 ROWNUM과 NOTICE테이블이 합쳐진 새로운 테이블이 생성된다. 이는 NOTICE테이블이 아닌 새로운 테이블이다.
+	3. where 절에서 ROWNUM을 그냥 사용하게되면 바깥 select문에서 만들어진 ROWNUM이 선택되므로 부속select문의 ROWNUM을 새로운 이름으로 지정하고 where절에서 별칭을 이용하면
+	   내부에서 만들어진 ROWNUM as NUM을 이용할 수 있다.
+
+
+
+<<< 중간 요약정리 >>>
+ "SQL" (DBMS에게 질의하는 명령어) > DML(Insert(Create), Select(Retrieve, Update(Update), Delete(Delete) >> CRUD(생성, 반환, 변환, 삭제 > 이걸하게되면 기본적인 관리하는 능력 생김) > select (컬럼 선택, 컬럼 연산(함수도 이용가능), 별칭) > 필터링(패턴(Like), 정규식, distinct)
+
+	   V
+
+"DBMS" (데이터베이스 관리 시스템 : 데이터베이스는 중앙집중형 > 동시성 보안문제 해결해야하므로) > 데이터베이스(데이터를 개별적으로 사용하는게 아닌 모아서 쓰자, 중복 제거하여 데이터를 단일하게 다뤄 결함을 없애는 중요특징 있음) 
+
+
+
+
+
+<< Oracle 문자열 내장 함수 >>
+
+* 특정 값이 필요하고 값에 부가적인 디테일한 작업을 절차적인 언어(자바,C,C++등등)를 거치지 않고 sql내에서 함수로 이용해 뽑아낼 수 있다.
+
+* 함수가 where절에서 작성하게 되면 1억개의 레코드가 있으면 함수로 인해 1억번을 호출하게 됨 > 연산자니 패턴으로 대체할 수 있으면 대체하는것이 좋다
+	select * from MEMBER where substr('PHONE', 1, 3) = '011'; >> select * from MEMBER where PHONE like '011%';
+
+* 문자열을 자르는 함수
+  - substr(COLUMN, num, num) (문자열을 자르는 함수)
+
+* 문자열 덧셈 함수
+  - select concat('홍', '길동') from dual;
+	동일한 문자열 덧셈 연산 select 3||'4' from dual >> 아무래도 함수 보다는 연산이 성능면에서 뛰어나므로 연산위주 사용 권장
+
+* 문자열 트림 함수(빈공백을 없앰)
+  - select trim('    hello    ') from dual; >> 양쪽 빈공백을 없앰
+	    ltrim() : 좌측 공백만 없앰
+	    rtrim() : 우측 공백만 없앰
+
+* 문자열 소문자 또는 대문자로 변경하기
+  - select lower('hoSeoK') from dual; 대문자 > 소문자로 변경
+  - select upper('hoseok') from dual; 소문자 > 대문자로 변경
+
+* 문자열 대치 함수
+  - select replace('where we are', 'we', 'you') from dual;	>>  where we are > where you are 로 변경(글자 수 상관없이 위치가 변경됨)
+  - select translate('where we are', 'we', 'you') from dual; 	>>  where we are > yhoro yo aro 로 변경(각각 나눠지며 새로운 인자로 모두 변경됨 하지만 변경되는 문자열 길이만큼(we니까 2글자 즉 w > y, e > o로)만 변경됨)
+
+* 문자열 패딩 함수
+  - select LPAD('HELLO', 5) from dual; >> 패딩 영역이 없기 때문에 문자가 출력되지 않음
+  - select LPAD('HELLO' 5, '0') from dual;	>> 5글자로 맞아떨어지기 때문에 문자가 출력되지 않음 
+  - select LPAD('HELLO', 10, '0') from dual >> 좌측에 0을 채움 '00000HELLO' 우측정렬
+  - select RPAD('HELLO', 10, '0') from dual >> 우측에 0을 채움 'HELLO00000' 좌측 정렬
+	위의 가운데 인자 숫자는 byte를 의미 따라서 한글은 한글자에 2바이트이므로 주의해야함
+
+* 첫 글자를 대문자로 바꾸는 함수 INITCAP(문자열) : 딱히 효율성이...
+  - select INITCAP('the ...') from dual;
+  - select INITCAP('the most important thing is ...') from dual;
+
+* 문자열 검색 함수 instr(문자열, 검색문자열, 위치(찾을 시작위치), 찾을 수)
+  - select instr('ALL WE NEED TO IS JUST TO...', 'TO') from dual;  -- 여러개의 'TO'가 있어도 첫번째 'TO'의 위치를 반환한다
+  - select instr('ALL WE NEED TO IS JUST TO...', 'TO', 15) from dual;  -- 15번째 위치부터 문자열을 검색하라
+  - select instr('ALL WE NEED TO IS JUST TO...', 'TO', 1, 2) from dual;  -- 1번째 문자부터 두번째 찾은 녀석의 위치를 찾아라
+
+* 문자열 길이를 얻는 함수
+  - select length('where we are') from dual;
+
+* 코드 값을 반환하는 함수
+  - select ASCII('A') from dual; >> 65
+* 코드 값으로 문자를 반환하는 함수
+  - select CHR(65) form dual; >> A
+
+
+
+
+<< Oracle 숫자 함수 >>
+
+* 절대값을 구하는 함수 ABS(n)
+  - select ABS(35), ABS(-35) from dual;
+
+* 음수/양수를 알려주는 함수 SIGN(n) (양수:1, 음수:-1, 0:0)
+  - select SIGN(35), SIGN(-35), SIGN(0) from dual;
+
+* 숫자의 반올림 값을 알려주는 함수 ROUND(n, i)
+  - select ROUND(34.456789), ROUND(34.56789) from dual;
+
+* 숫자의 나머지 값을 반환하는 함수 MOD(n1, n2)
+  - select TRUNC(17/5) 몫, MOD(17, 5) 나머지 from dual;
+
+* 숫자의 제곱을 구하는 함수와 제곱근을 구하는 함수 POWER(n1, n2) / SQRT(n)
+  - select POWER(5, 2), SQRT(25) from dual;
+
+
+
+
+<< Oracle 날짜 함수 >>
+
+* 현재 시간을 얻는 함수 (별도로 전달하는 값이 없기 때문에 괄호가 없는 함수임)
+  - SYS : 현재 오라클 DBMS가 있는 위치에서의 시간의미
+  - select SYSDATE, CURRENT_DATE, SYSTIMESTAMP, CURRENT_TIMESTAMP
+    from dual;
+	-sysdate : 년 월 일 시 분 초 까지 얻어줌 (오라클 서버의 시간대)
+	-current_date : 세션에 대한 사용자를 기반으로해서 세션에 설정된 현재 시간대에 따른 날자를 얻어주는 함수 (세션 설정에 따른 시간을 얻고싶으면)
+	-systimestamp : 년 월 일 시 분 초 + 밀리세컨드까지 얻어줌
+	-current_timestamp : 세션 시간에 따른 시간얻어줌(밀리세컨드까지)
+
+  - 세션시간과 포맷변경
+	> alter session set TIME_ZONE = '-1:0' >> 이용하면 세션 시간과 포멧 변경
+	> 접속자가 자신의 세션에 대한 시간을 바꾸면 그 시간에 따른 날짜를 얻을 수 있음
+	> alter session set NLS_DATE_FORMAT = 'YYYY-MM-DD HH24:MI:SS';
+
+* 날짜 추출함수 EXTRACT(YEAR/MONTH/DAY/HOUR/MINUTE/SECOND FROM ...)
+  - select extract(YEAR from sysdate) from dual;
+  - select extract(MONTH from sysdate) from dual;
+  - select extract(DAY from sysdate) from dual;
+  - select extract(HOUR from sysdate) from dual;
+  - select extract(MINUTE from sysdate) from dual;
+  - select extract(SECOND from sysdate) from dual;
+
+* 날짜를 누적하는 함수 ADD_MONTH(날짜, 정수)
+  - select ADD_MONTHS(SYSDATE, 1) from dual;
+  - select ADD_MONTHS(SYSDATE, -1) from dual;
+
+* 날짜의 차이를 알아내는 함수 MONTHS_BETWEEN(날짜, 날짜)
+  - select MONTHS_BETWEEN(SYSDATE, TO_DATE('2013-12-25')) from dual;
+
+* 다음 요일을 알려주는 함수 NEXT_DAY(현재날짜, 다음요일)
+  - select NEXT_DAY(SYSDATE, '토요일') from dual;
+
+* 월의 마지막 일자를 알려주는 함수 LAST_DAY(날짜)
+  - select LAST_DAY(SYSDATE) FROM dual;
+
+* 지정된 범위에서 날짜를 반올림하는/자르는 함수 ROUND/TRUNC(날짜, 포멧), 포멧 (CC(세기), YEAR(년), Q(분기), MONTH(월), W(주), DAY(일), D, HH(시간), MI(분))
+  - select ROUND(SYSDATE, 'CC'), TRUNC(SYSDATE, 'CC') FROM DUAL;
+
+
+
+
+
+<< Oracle 변환 함수 >>
+
+ [ 숫자 ] > TO_CHAR() > [ 문자열 ] > TO_DATE() > [ 날짜 ]
+         < TO_NUMBER() <        < TO_CHAR()  <
+
+* NUMBER 형식을 문자열(varchar2)로 변환 TO_CHAR(NUMBER)
+  - select TO_CHAR(12345678, '$99,999,999,999.99') from dual;
+				  >> 숫자가 위의 범위에 포함되면 위와 같은 형태로 formating해 표현함
+				  >> 뒤에 포멧을 하는 숫자가 변환하려는 숫자보다 자릿수가 부족하면 안됨
+					9 : 숫자
+					0 : 빈자리를 채우는 문자
+					$ : 앞에 $ 표시
+					, : 천 단위 구분자 표시
+					. : 소수점 표시
+					
+* DATE 형식을 문자열(varchar2)로 변환 TO_CHAR(DATETIME)
+  - select TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI:SS') from dual;
+	포맷문자					설명
+	YYYY/RRRR/YY/YEAR		년도표시 : 4자리/Y2K/2자리/영문
+	MM/MON/MONTH			월표시 : 2자리/영문3자리/영문전체
+	DD/DAY/DDTH			일표시 : 2자리/영문/2자리ST
+	AM/PM				오전/ 오후표시
+	HH/HH24			시간표시 : 12시간/24시간
+	MI				분표시 : 0~59분
+	SS				초표시 : 0~59초
+	'' 안에 포멧문자가 아니면 오류가 발생함
+
+* 문자열을 날짜 형식으로 변환하는 함수 TO_DATE(문자열, 날짜포멧)
+  - select TO_DATE('1994-01-01', 'YYYY-MM-DD') from dual;
+
+* 문자열을 날짜(밀리세컨드포함)형식으로 변환하는 함수 TO_TIMESTAMP(문자열)
+  - select TO_TIMESTAMP('1994-01-01 12:23:25', 'YYYY-MM-DD HH:MI:SS') from dual;
+
+* 문자열을 숫자형식으로 변환하는 함수 TO_NUMBER(문자열)
+  - select TO_NUMBER('1994') from dual;
+
+
+
+
+
+<< Oracle NULL관련 함수 >>
+ 
+* 반환 값이 NULL인 경우에 대체 값을 제공하는 NVL(NULL, 대체값) 함수
+  - select NVL(AGE, 0) from MEMBER;
+
+* NVL에서 조건을 하나 더 확장한 NVL2(입력값, NOTNULL 대체값, NULL대체값) 함수
+  - select NVL2(AGE, 100/AGE, 0) from MEMBER;
+
+* 두 값이 같은 경우 NULL 그렇지 않은 경우 첫 번째 값 반환 NULLIF(값1, 값2) 함수
+  - select NULLIF(AGE, 19) from MEMBER;
+
+<< 기타함수 >>
+* 조건에 따른 값 선택하기 DECODE(기존값, 비교값, 출력값, 비교값, 출력값)
+  - select DECODE(GENDER, '남성', 1, 2) from MEMBER; >> 상황에 따라 다른값을 보여야 할 떄 사용
+  - select DECODE(substr(PHONE, 1, 3), '011', 'SK', '016', 'KT', '기타') from MEMBER;
+  - select DECODE(substr(PHONE, 1, 3),
+				'011', 'SK'
+				'016', 'KT'
+				'기타') from MEMBER;
+
+
+
+
+
+
+
+<< SELECT 구절, 정렬(order by) >>
+asc : 오름차순
+desc : 내림차순
+
+
+
+
+
+
+<< 집계함수(SUM, MIN, MAX, COUNT, AVG)와 GROUP BY >>
+
+* 회원별 게시글 수를 조회하시오
+  - select WRITER_ID, count(ID) from NOTICE group by WRITER_ID;
+
+
+
+
+
+
+
+<< Having 절 >>
+
+* 회원별 게시글 수를 조회하시오. 단 게시글이 2개 이하인 레코드만 출력하시오
+  - select WRITER_ID, count(*) from NOTICE group by WRITER_ID having count(*) <= 2;
+
+
+
+
+
+
+<< 순위함수 ROW_NUMBER(), RANK(), DENSE_RANK() ) >>
+
+실행순서는 FROM - CONNECT BY - WHERE - GROUP BY - HAVING - SELECT - ORDER BY 이다
+ROWNUM은 where절에서 생성되고 order by절은 where절 이후에 실행됨을 알아두자
+
+* order by를 먼저 정렬을하고 이후 일련번호(ROWNUM)을 붙이게 하는 함수 ROW_NUMBER()
+  - select ROWNUM, ID, TITLE, WRITER_ID, REGDATE, HIT from NOTICE order by hit;
+	>> 위 where절에서 만들어진 ROWNUM이 ORDER BY 절 HIT기준에 의해 섞이게 됨 >> 이유는 실행 순서 때문이다.	
+	>> 정렬한 이후에 ROWNUM을 붙이기 위해서는 (order by 이후 일련번호 붙이기) ROWNUM을 함수로 만든것을 사용한다
+							V
+  - select ROW_NUMBER() OVER (order by hit), ID, TITLE, WRITER_ID, REGDATE, HIT from NOTICE;
+	>> 위의 구분에 over (order by hit) order by hit를 넘어서서 정렬하라 즉 order by절을 먼저 실행하여 정렬한것에 다시 ROWNUM을 순차적으로 번호를 부가하는 것이다.
+
+* 일련번호 대신 등수를 나타내는(4등2명이면 5등생략, 6등 표시) 함수 RANK()
+  - select RANK() OVER (order by hit), ID, TITLE, WRITER_ID, REGDATE, HIT from NOTICE;
+
+* 등수를 순차적으로(4등 2명이어도 5등 존재하게) 매기는 함수 DENSE_RANK()
+  - select DENSE_RANK() over (order by hit), ID, TITLE, WRITER_ID, REGDATE, HIT from NOTICE;
+
+
+
+
+
+
+<< 부조회(서브쿼리) >>
+구절은 순서를 가지고 있는데 그 순서를 바꿔야 할 경우에 사용된다.
+
+* select * from MEMBER where ROWNUM between 1 and 10;
+				여기서 최신 등록순으로 정렬한 결과에서 상위 열명을 원하는 경우라면?
+
+* select * from (select * from MEMBER order by REGDATE desc) where ROWNUM between 1 and 10;
+	>> from절은 꼭 테이블이 아니라 격자형 데이터가 들어와도 되므로 1차 정렬한 데이터를 from절에 넣고 이용한다. (부속 질의문)
+	>> 소괄호로 묶는 이유는 먼저 연산을 해야하므로 ( )
+
+
+
+
+
+
+
+[[[ 조인(INNER, OUTER, SELF, CROSS) ]]]
+
+
+<< INNER JOIN (default join)>>
+서로 관계가 있는 레코드들은 INNER
+관계가 없는 레코드들은 OUTER
+
+* INNER JOIN : 참조키를 기준으로 일치하는 행만 조인
+  - select * from MEMBER INNER JOIN NOTICE ON MEMBER.ID = NOTICE.WRITER_ID   >> on 뒤에 어떤 컬럼이 관계가 있는지 밝혀야함(조인속성)
+    (ANSI SQL 방식 즉 표준방식을 이용한 조인방법)
+
+
+
+
+<< OUTER JOIN >>
+이너조인을 사용하고 그 후에 아우터를 추가함(아우터조인을 보통 많이 사용함 : 어떤 목적을 가지고 쿼리를 실행하면 항상 주인공이되는 테이블이 생성됨 따라서 아우터조인을 이용해 주인공이 되는 테이블은 모두 출력해야함)
+* OUTER JOIN : 참조키를 기준으로 일치하지 않는 행도 포함시키는 조인
+  - select * from MEMBER LEFT/RIGHT/FULL OUTER JOIN NOTICE ON MEMEBER.ID = NOTICE.WRITER_ID;
+
+  - left outer join : 쿼리상 왼쪽에 있는 outer를 결과에 포함시키겠다.
+  - right outer join : 쿼리상 오른쪽에 있는 outer를 결과에 포함시키겠다.
+  - full outer join : 양쪽 모두에 있는 outer를 결과에 포함시키겠다.
+
+
+
+
+
+
+* 오라클 DB 실행순서 : FROM - CONNECT BY - WHERE - GROUP BY - HAVING - SELECT - ORDER BY
+  (별칭, 집계함수 등을 사용하면 실행순서 뒤쪽에 있는 구문에서 부터 사용 가능하다.)
+
