@@ -493,6 +493,10 @@ ROWNUM은 where절에서 생성되고 order by절은 where절 이후에 실행�
 
 
 
+* SELF JOIN : inner, outer 처럼 또 다른 조인이 아니라 개념적으로 자신과 자신이 함쳐지는것을 말한다
+  ex) : 사원들을 관리하고자 하는 사원들을 뽑아 내야할 때 즉 사원이라는 테이블을 가지고 그 안에서 사원들 사이의 관계를 뽑을때 사용함
+	 또는 댓글이 댓글을 참조, 카테고리가 카테고리를 참조 하는경우 종종 사용된다.
+
 
 
 * 오라클 DB 실행순서 : FROM - CONNECT BY - WHERE - GROUP BY - HAVING - SELECT - ORDER BY
