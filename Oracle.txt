@@ -493,6 +493,7 @@ ROWNUM은 where절에서 생성되고 order by절은 where절 이후에 실행�
 
 
 
+<< SELF JOIN >>
 * SELF JOIN : inner, outer 처럼 또 다른 조인이 아니라 개념적으로 자신과 자신이 함쳐지는것을 말한다
   ex) : 사원들을 관리하고자 하는 사원들을 뽑아 내야할 때 즉 사원이라는 테이블을 가지고 그 안에서 사원들 사이의 관계를 뽑을때 사용함
 	 또는 댓글이 댓글을 참조, 카테고리가 카테고리를 참조 하는경우 종종 사용된다.
@@ -501,4 +502,130 @@ ROWNUM은 where절에서 생성되고 order by절은 where절 이후에 실행�
 
 * 오라클 DB 실행순서 : FROM - CONNECT BY - WHERE - GROUP BY - HAVING - SELECT - ORDER BY
   (별칭, 집계함수 등을 사용하면 실행순서 뒤쪽에 있는 구문에서 부터 사용 가능하다.)
+
+
+
+<< OLD JOIN >>
+
+* ANSI INNER JOIN	>> 조인이라는 키워드를 사용
+	select N.ID, N.TITLE, M.NAME
+	from
+	MEMBER M
+	INNER JOIN NOTICE N ON M.ID = N.WRITER_ID
+	[ where 절] >>조인 문장이 깔끔하게 끝나고 where절을 사용할 수 있음
+* Oracle INNER JOIN	>> 과거 오라클에서 사용되던 조인문장
+	select N.ID N.TITLE, M.NAME
+	from MEMBER M, NOTICE N
+	where M.ID = N.WRITER_ID [ and  . . . ] >> where 절에 같이 작성해야함 
+
+* ANSI OUTER JOIN
+	select N.*, M.NAME writer_name
+	from MEMBER M LEFT OUTER JOIN NOTICE N 	>> outer 키워드 생략가능
+	ON M.ID = N.WRITER_ID
+	
+* Oracle OUTER JOIN
+	select N.*, M.NAME writer_name
+	from NOTICE N, MEMBER M
+	where N.WRITER_ID, M.ID(+) >> NOTICE테이블을 중심으로 left outer조인을 하려면 널값을 포함하겠다는 의미로 (+)키워드를 중심이 아닌 테이블에 작성  
+-- FULL OUTER 조인은 옛날 오라클 방식은 지원하지 않는다.
+
+* ANSI CROSS JOIN : 두개의 테이블을 곱하기로 테이블의 결과를 만들어낸다.
+	select N.*, M.name writer_name
+	from member M cross join notice n [ 뒤에 on 이후 관계는 생략 어차피 곱이므로 ]
+
+* Oracle CROSS JOIN
+	select N.*, M.name writer_name
+	from member M, notice N;
+	>> 조인 컨디션 생략하면 크로스 조인됨
+
+
+
+<< UNION >>
+* 레코드를 합칠때 사용됨, 컬럼의 개수만 맞춰주면 이용할 수 있다.
+	언제쓰나? : 3종류의 게시판이 별도의 테이블일 경우 테이블을 합쳐 통합검색을 하고 싶을떄 이용됨
+		   혹은 하나의 테이블이라도 A, B, C 조건에 따른 결과물을 UNION으로 합쳐서 이용할 수 있다.
+
+* UNION : 두 테이블을 합칠때 완전히 일치하는 레코드가 존재하면 중복을 제거해 하나씩만 나타낸다
+* MINUS : 선행 테이블을 기준으로 후행 테이블의 레코드를 뺀다. (중복되는 레코드를 뺄셈처럼 제거)
+* INTERSECT : 두 테이블의 공통분모만 남겨놓는다.
+* UNION ALL : 같은 레코드를 중복을 제거하지 않고 모두 나타낸다
+
+
+
+<< VIEW >>
+* 물리적인 데이터구조(table)에서 우리가 필요하면 개념적이 데이터 구조(view)를 만듬
+* 여러 테이블을 합쳐서 하나의 뷰를 만들 수 도있고 하나의 테이블에서 일부분만을 뷰로 만들수도있다.
+
+create view NOTICEVIEW as
+select N.ID, N.TITLE, N.writer_id, M.name, count(C.id) cnt
+from MEMBER M
+right outer join NOTICE N on M.id = N.writer_id
+left outer join "COMMENT" C on N.id = C.notice_id	>> 두번쨰 테이블을 조인할떄는 ""로 묶어줘야함
+group by N.id, N.title, N.writer_id, M.name;
+
+-- 위의 구문들을 하나의 뷰로 만들면 아래와 같이 간편하게 이용가능
+select * from NOTICEVIEW;
+
+<< 데이터 딕셔너리 >>
+* 사용자 정보, 권한, 테이블/뷰, 제약조건, 함수/프로시저 등의 데이터들을 저장하는 공간
+
+>> 예시
+select * from DICT;
+-- 사용자 테이블을 보기
+select * from USER_TABLES;
+-- 사용자 테이블의 컬럼 보기
+select * from USER_TAB_COLUMNS;
+select * from USER_TAB_COLUMNS where TABLE_NAME='MEMBER';
+
+과거엔 테이블 목록을 보고싶으면 콘솔기반이므로 딕셔너리를 직접 찾아봐야했지만
+요즘은 gui가 워낙 잘 되어있어서 굳이 조회해서 보는일은 많지 않다.
+
+
+
+<< 도메인 제약조건 >>
+* 속성에 도메인이 아닌 값이 올 수 없도록 하는 제약조건
+
+* NOT NULL : 값을 넣지 않으면 에러가 남
+  이미 완성된 테이블 수정 방법 alter table [테이블명] modify [속성명] [자료형] not null;
+
+* DEFAULT : 반드시 값을 넣어야 하지만 사용자가 전달하는 것이 아닌 자동으로 입력해야 하는 경우  
+  이미 완성된 테이블 수정 방법 alter table [테이블명] modify [속성명] [자료형] default [디폴트값];
+
+* CHECK : 값의 유효범위(도메인 범위)를 체크하는 check 제약조건
+  이미 완성된 테이블 수정 방법 alter table [테이블명] add constraint [제약조건명] check(제약조건);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
