@@ -582,7 +582,7 @@ select * from USER_TAB_COLUMNS where TABLE_NAME='MEMBER';
 
 
 
-<< 도메인 제약조건 >>
+<< 도메인 제약조건 : NOT NULL, DEFAULT >>
 * 속성에 도메인이 아닌 값이 올 수 없도록 하는 제약조건
 
 * NOT NULL : 값을 넣지 않으면 에러가 남
@@ -593,6 +593,47 @@ select * from USER_TAB_COLUMNS where TABLE_NAME='MEMBER';
 
 * CHECK : 값의 유효범위(도메인 범위)를 체크하는 check 제약조건
   이미 완성된 테이블 수정 방법 alter table [테이블명] add constraint [제약조건명] check(제약조건);
+
+
+
+<< 도메인 제약조건 : 체크 제약조건 (check) >>
+	...
+ex) phone, varchar2(20) check(phone like '010-%-____') not null,
+	...
+
+ex2) alter table test ADD constraint CK_TEST_PHONE check(phone like '010-%-____');
+
+
+
+<< 도메인 제약조건 : 정규식 이용 체크 제약조건 >>
+*체크 제약조건을 조금 더 정교하게 걸고 싶을때 이용한다.
+
+
+
+<< Entity 제약조건 >>
+primary key : 중복 허용x, Null값 허용x (기본키 제약 조건, 제약조건 이름을 붙일수도 있다.)
+unique : 중복 허용x, NULL값 허용O (제약조건 이름을 붙일수도 있다.)
+
+
+<< 시퀀스(Sequence) >>
+* 공지사항에 ID열에 값을 넣을때 기존에 몇번인지 모르지만 그 다음값을 쉽게 얻기위해 이용하는 도구
+-- << SEQUENCE >>
+insert into notice(ID, TITLE, WRITER_ID)
+values(NOTICE_ID_SEQ.NEXTVAL, '시퀀스 예제', 'hoseok'); -- 시퀀스 초기값을 마지막 ID+1로 변경해야함
+
+select NOTICE_ID_SEQ.NEXTVAL from Dual; --실행할때마다 값이 1씩증가 > 시퀀스
+
+-- ID값을 넣지 않고도 ID를 자동적으로 삽입하는 방법
+-- NOTICE 테이블정보 수정 버튼 > ID열 > 만든 시퀀스 선택
+-- 하지만 초기 ID값을 설정해야 거기서부터 하나씩 증가하며 삽입함
+
+
+
+
+
+
+
+
 
 
 
