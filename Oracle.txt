@@ -500,8 +500,7 @@ ROWNUM은 where절에서 생성되고 order by절은 where절 이후에 실행�
 
 
 
-* 오라클 DB 실행순서 : FROM - CONNECT BY - WHERE - GROUP BY - HAVING - SELECT - ORDER BY
-  (별칭, 집계함수 등을 사용하면 실행순서 뒤쪽에 있는 구문에서 부터 사용 가능하다.)
+
 
 
 
@@ -626,6 +625,10 @@ select NOTICE_ID_SEQ.NEXTVAL from Dual; --실행할때마다 값이 1씩증가 >
 -- ID값을 넣지 않고도 ID를 자동적으로 삽입하는 방법
 -- NOTICE 테이블정보 수정 버튼 > ID열 > 만든 시퀀스 선택
 -- 하지만 초기 ID값을 설정해야 거기서부터 하나씩 증가하며 삽입함
+
+
+* 오라클 DB 실행순서 : FROM - CONNECT BY - WHERE - GROUP BY - HAVING - SELECT - ORDER BY
+  (별칭, 집계함수 등을 사용하면 실행순서 뒤쪽에 있는 구문에서 부터 사용 가능하다.)
 
 
 

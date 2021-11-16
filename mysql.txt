@@ -67,3 +67,9 @@
 	-질의문을 좀 더 쉽게 작성할 수 있다.
 	-데이터의 보안 유지에 도움이 된다.
 	-데이터를 좀 더 편리하게 관리할 수 있다.
+
+
+* 페이징 처리
+-- MySQL ROWNUM 이용한 페이징 처리
+select r2.*  from (select @rownum:=@rownum+1 rownum, notice.* from notice, (select @rownum:=0) r) r2
+where r2.rownum between 1 and 10;
