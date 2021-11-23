@@ -73,3 +73,18 @@
 -- MySQL ROWNUM 이용한 페이징 처리
 select r2.*  from (select @rownum:=@rownum+1 rownum, notice.* from notice, (select @rownum:=0) r) r2
 where r2.rownum between 1 and 10;
+
+* MySQL에서 ROWNUM 만드는 방법
+SELECT @ROWNUM:=@ROWNUM+1, A.*
+FROM 테이블명 A, (SELECT @ROWNUM:=0) R
+;
+ 
+SET @ROWNUM:=0;
+SELECT @ROWNUM:=@ROWNUM+1, A.*
+FROM 테이블명 A
+;
+ 
+SELECT @ROWNUM:=@ROWNUM+1, A.*
+FROM REQUEST_ACTION_HISTORY A
+WHERE (@ROWNUM:=0)=0
+;
